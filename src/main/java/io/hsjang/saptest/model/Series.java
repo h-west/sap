@@ -7,8 +7,8 @@ import javax.persistence.Id;
 
 import lombok.Data;
 
-@Data
 @Entity
+@Data
 public class Series {
     
     @Id
@@ -18,6 +18,6 @@ public class Series {
     Long low;
     Long close;
     Long volume;
-    Long change;
+    Double change;
     String symbol;
 }

@@ -7,8 +7,8 @@ import javax.persistence.Id;
 
 import lombok.Data;
 
-@Data
 @Entity
+@Data
 public class Krx {
     
     @Id
