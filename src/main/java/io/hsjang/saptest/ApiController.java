@@ -1,6 +1,5 @@
 package io.hsjang.saptest;
 
-import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -10,16 +9,15 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import io.hsjang.saptest.repos.KrxRepository;
-import io.hsjang.saptest.repos.SeriesRepository;
-import io.hsjang.saptest.tester.SimpleTester;
-import io.hsjang.saptest.model.Krx;
-import io.hsjang.saptest.model.Series;
-
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import io.hsjang.saptest.model.Krx;
+import io.hsjang.saptest.model.Series;
+import io.hsjang.saptest.repos.KrxRepository;
+import io.hsjang.saptest.repos.SeriesRepository;
+import io.hsjang.saptest.tester.uplimit.UplimitTester;
 
 
 @RestController
@@ -33,7 +31,7 @@ public class ApiController {
     SeriesRepository seriesRepository;
 
     @Autowired
-    SimpleTester simpleTester;
+    UplimitTester uplimitTester;
 
     /**
      * krx
@@ -74,25 +72,13 @@ public class ApiController {
      * TEST1 
      */
     @RequestMapping(value="/test1", method=RequestMethod.GET)
-    public TestResult series(@RequestParam Map<String,Object> params) throws Exception{
-        Date startDt = new SimpleDateFormat("yyyyMMdd").parse("20150601"); // default: 2015-06-01
+    public String series(@RequestParam Map<String,Object> params) throws Exception{
+        Date startDt = new SimpleDateFormat("yyyyMMddHH").parse("2020080109"); // default: 2015-06-02
         Date endDt = new Date();   // default: now (데이터 마지막일)
         Long capital = 10000000L;   // default: 10,000,000원
-
-        return simpleTester.test(startDt, endDt, capital, (sDt,eDt,c)->{
-            /** 투자금 */
-            Long money1 = c;
-
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(startDt);
-            /** 1. 시작일자 전날 상한가 종목 조회 */
-            //seriesRepository.fin
-            /** 2. 특정 조건에 따라 거래, 거래 내용 저장 (반복) */
-            
-            /** 3. 결과 리턴 */
-
-
-            return new TestResult(sDt,eDt,c,c);
-        });
+        
+        uplimitTester.start(startDt, endDt, capital);
+        
+        return "";
     }
 }
