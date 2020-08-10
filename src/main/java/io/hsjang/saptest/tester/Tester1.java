@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.persistence.Entity;
-
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -153,9 +151,9 @@ public class Tester1 implements InitializingBean{
     public void sell(List<Order> orders){
         // 매도
         // series : 오늘 정보
-        for(Order o:orders){
+        // for(Order o:orders){
             
-        }
+        // }
 
         System.out.println(stocks);
         System.out.println(balance);

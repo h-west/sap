@@ -1,6 +1,5 @@
 package io.hsjang.saptest.tester;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
