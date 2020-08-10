@@ -17,6 +17,7 @@ import io.hsjang.saptest.model.Krx;
 import io.hsjang.saptest.model.Series;
 import io.hsjang.saptest.repos.KrxRepository;
 import io.hsjang.saptest.repos.SeriesRepository;
+import io.hsjang.saptest.tester.Tester1;
 import io.hsjang.saptest.tester.uplimit.UplimitTester;
 
 
@@ -32,6 +33,9 @@ public class ApiController {
 
     @Autowired
     UplimitTester uplimitTester;
+
+    @Autowired
+    Tester1 tester1;
 
     /**
      * krx
@@ -78,6 +82,14 @@ public class ApiController {
         Long capital = 10000000L;   // default: 10,000,000원
         
         uplimitTester.start(startDt, endDt, capital);
+        
+        return "";
+    }
+
+    @RequestMapping(value="/test2", method=RequestMethod.GET)
+    public String test2(@RequestParam Map<String,Object> params) throws Exception{
+        
+        tester1.start("20200725", 10000000L);
         
         return "";
     }
