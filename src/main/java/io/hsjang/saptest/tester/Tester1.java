@@ -56,14 +56,15 @@ public class Tester1 implements InitializingBean{
             c.add(Calendar.HOUR, 9);
 
             int dIdx = -1;
-            for(int i=0;i<openDays.size(); i++){
+            int mxIdx = openDays.size()-1;
+            for(int i=0;i<=mxIdx; i++){
                 if(openDays.get(i).getTime()>startDt.getTime()){
                     dIdx = i;
                     break;
                 }
             }
 
-            while(dIdx>0 && openDays.get(dIdx).before(endDt)){
+            while(dIdx>0 && dIdx<=mxIdx && openDays.get(dIdx).before(endDt)){
                 Date dt = openDays.get(dIdx);
                 List<Series> candidates = seriesRepository.findByDateAndChangeGreaterThanEqual(dt, 0.29d);
                 testByDay(dt, candidates);
@@ -71,7 +72,7 @@ public class Tester1 implements InitializingBean{
             }
 
         } catch (Exception e) {
-            // 
+            e.printStackTrace();
         }
     }
 
@@ -112,6 +113,7 @@ public class Tester1 implements InitializingBean{
         //         return Order.ofBuy(s.getSymbol(), p);
         //     }).collect(Collectors.toList());
 
+
         List<Order> orders = new ArrayList<Order>();
         for(Series s:temp1){
             if(!excludes.contains(s.getSymbol())){
@@ -128,7 +130,7 @@ public class Tester1 implements InitializingBean{
                         //}
                     }
                 }
-                orders.add(Order.ofBuy(s.getSymbol(), p));
+                orders.add(Order.buy(s.getSymbol(), p));
             }
         }
         return orders;
@@ -156,9 +158,9 @@ public class Tester1 implements InitializingBean{
             int lp = Integer.parseInt(pa[0]);
             int up = Integer.parseInt(pa[1]);
 
-            Long uprice = stock.getPrice() * (1+up/100);
-            Long lprice = stock.getPrice() * (1+lp/100);
-            orders.add(Order.ofSell(stocks.get(s).getSymbol(), uprice, lprice));
+            Long uprice = (long) (stock.getPrice() * (1+(float)up/100));
+            Long lprice = (long) (stock.getPrice() * (1+(float)lp/100));
+            orders.add(Order.sell(stocks.get(s).getSymbol(), uprice, lprice));
         }
         return orders;
     }
@@ -194,7 +196,7 @@ public class Tester1 implements InitializingBean{
                     Long count = max/buyPrice;
                     
                     if(stocks.containsKey(o.getSymbol())){
-                        stocks.put(o.getSymbol(), stocks.get(o.getSymbol()).add(buyPrice, count));
+                        stocks.put(o.getSymbol(), stocks.get(o.getSymbol()).buy(buyPrice, count));
                     }else{
                         stocks.put(o.getSymbol(), new Stock(o.getSymbol(),buyPrice,count,dt));
                     }
@@ -204,17 +206,25 @@ public class Tester1 implements InitializingBean{
             }
         }
 
-        System.out.println(dt +"(bal:"+balance+")::>" + stocks);
+        System.out.println("BUY!!>>!"+dt +"(bal:"+balance+")::>" + stocks);
     }
 
     public void sell(List<Order> orders){
         // 매도
-        // series : 오늘 정보
-        // for(Order o:orders){
-            
-        // }
-
-        System.out.println("SELL!!!");
+        for(Order o: orders){
+            System.out.println("SELL-ORDER : "+o);
+            Series s = seriesRepository.findByDateAndSymbol(dt,o.getSymbol());
+            System.out.println("SELL-TODAY : "+s);
+            if(o.getUprice() < s.getHigh()){
+                Stock myStock = stocks.remove(o.getSymbol());
+                balance += myStock.getCount() * o.getUprice();
+            }else if(o.getLprice() > s.getLow()){
+                Stock myStock = stocks.remove(o.getSymbol());
+                balance += myStock.getCount() * o.getLprice();
+            }
+        }
+        
+        System.out.println("SELL!!>>!"+dt +"(bal:"+balance+")::>" + stocks);
         // System.out.println(stocks);
         // System.out.println(balance);
     }

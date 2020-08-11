@@ -11,11 +11,11 @@ public class Order {
     Long uprice; // 상단
     Long lprice; // 하단
 
-    public static Order ofBuy(String symbol, Long price) {
+    public static Order buy(String symbol, Long price) {
         return new Order(symbol, price);
     }
 
-    public static Order ofSell(String symbol, Long uprice, Long lprice) {
+    public static Order sell(String symbol, Long uprice, Long lprice) {
         return new Order(symbol, uprice, lprice);
     }
 
