@@ -1,16 +1,20 @@
 package io.hsjang.saptest;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.hsjang.saptest.model.Krx;
@@ -18,7 +22,8 @@ import io.hsjang.saptest.model.Series;
 import io.hsjang.saptest.repos.KrxRepository;
 import io.hsjang.saptest.repos.SeriesRepository;
 import io.hsjang.saptest.tester.Tester1;
-import io.hsjang.saptest.tester.uplimit.UplimitTester;
+import io.hsjang.saptest.tester.TradeLog;
+import io.hsjang.saptest.tester.TradeResult;
 
 
 @RestController
@@ -30,9 +35,6 @@ public class ApiController {
 
     @Autowired
     SeriesRepository seriesRepository;
-
-    @Autowired
-    UplimitTester uplimitTester;
 
     @Autowired
     Tester1 tester1;
@@ -72,25 +74,53 @@ public class ApiController {
         return seriesRepository.findByDateAndChangeGreaterThanEqual(cal.getTime(), 0.29d);
     }
 
-    /**
-     * TEST1 
-     */
-    @RequestMapping(value="/test1", method=RequestMethod.GET)
-    public String series(@RequestParam Map<String,Object> params) throws Exception{
-        Date startDt = new SimpleDateFormat("yyyyMMddHH").parse("2020080109"); // default: 2015-06-02
-        Date endDt = new Date();   // default: now (데이터 마지막일)
-        Long capital = 10000000L;   // default: 10,000,000원
-        
-        uplimitTester.start(startDt, endDt, capital);
-        
-        return "";
-    }
-
     @RequestMapping(value="/test2", method=RequestMethod.GET)
     public String test2(@RequestParam Map<String,Object> params) throws Exception{
         
         tester1.start("20200725", 10000000L);
         
         return "";
+    }
+
+    @RequestMapping(value="/test3", method=RequestMethod.GET)
+    public String test3(@RequestParam Map<String,Object> params) throws Exception{
+        
+        tester1.fullTest();
+        
+        return "";
+    }
+
+    @RequestMapping(value="/test4", method=RequestMethod.GET)
+    @ResponseBody
+    public TradeResult test4(@RequestParam Map<String,Object> params) throws Exception{
+        
+
+        TradeResult tr = tester1.start("20200409","20200805", 10000000L, 70, "-1:9");
+        
+
+        File file = new File("log-logs.txt");
+        FileWriter writer = null;
+
+        try {
+            writer = new FileWriter(file, true);
+            for(TradeLog log: tr.getLogs()){
+                for(String l: log.getLogs()){
+                    System.out.println(l);
+                    writer.write(l+"\n");
+                }
+            }
+            writer.flush();
+
+        } catch(IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if(writer != null) writer.close();
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return tr;
     }
 }

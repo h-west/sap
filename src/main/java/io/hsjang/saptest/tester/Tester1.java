@@ -1,5 +1,8 @@
 package io.hsjang.saptest.tester;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -13,16 +16,21 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import io.hsjang.saptest.model.Krx;
 import io.hsjang.saptest.model.Series;
+import io.hsjang.saptest.repos.KrxRepository;
 import io.hsjang.saptest.repos.SeriesRepository;
 
 @Service
 public class Tester1 implements InitializingBean{
-    Long balance;
+    long balance;
     Map<String,Stock> stocks = new HashMap<String,Stock>();
 
     @Autowired
     SeriesRepository seriesRepository;
+
+    @Autowired
+    KrxRepository krxRepository;
 
     List<Date> openDays;
     
@@ -38,59 +46,160 @@ public class Tester1 implements InitializingBean{
     int buyRatio = 70; // 잔고의 70% 만큼 후보 매수 (후보 1/n)
 
     String sellCondition = "-5:5";  // -5이하 손절 5이상 차익실현
+    int maxStored = 40;
 
-    public void start(String sDt, Long bal){
-        start(sDt, new SimpleDateFormat("yyyyMMdd").format(new Date()),bal);
-    }
+    Map<String,String> krxMap;
 
-    public void start(String sDt, String eDt, Long bal){
+    public void fullTest(){
 
+        File file = new File("log.txt");
+        FileWriter writer = null;
+
+
+        float max =0;
+        TradeResult maxResult = new TradeResult();
+        
         try {
-            this.balance = bal;
-            this.stocks = new HashMap<String,Stock>();
-            Date startDt = new SimpleDateFormat("yyyyMMdd").parse(sDt);
-            Date endDt = new SimpleDateFormat("yyyyMMdd").parse(eDt);
-
-            Calendar c = Calendar.getInstance();
-            c.setTime(startDt);
-            c.add(Calendar.HOUR, 9);
-
-            int dIdx = -1;
-            int mxIdx = openDays.size()-1;
-            for(int i=0;i<=mxIdx; i++){
-                if(openDays.get(i).getTime()>startDt.getTime()){
-                    dIdx = i;
-                    break;
+        for(int l=-10;l<0;l++){
+            for(int u=3;u<10;u++){
+                
+                     // 기존 파일의 내용에 이어서 쓰려면 true를, 기존 내용을 없애고 새로 쓰려면 false를 지정한다.
+                    writer = new FileWriter(file, true);
+                    writer.write("==================================================================================================================\n");
+                    writer.write("  ** (조건)   1. 매도 : "+l+"% 하락할 경우   2. 매도 : "+u+"% 상승할 경우 \n");
+                    writer.write("==================================================================================================================\n");
+        
+                    
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    int last = openDays.size()-1;
+                    for(int i=last-80; i<last; i++){
+                        //for(int j=i+1; j<openDays.size(); j++){
+                            TradeResult r = start(openDays.get(i), openDays.get(last), 10000000L, 70, l+":"+u); 
+                            if(max<r.getEr()){
+                                max=r.getEr();
+                                r.setCondision(l+"% 하락, "+u+"% 상승");
+                                maxResult = r;
+                            }
+                        //}
+                        String log = "  ** (조건) "+l+"% 하락, "+u+"% 상승 => ["+sdf.format(openDays.get(i))+" ~ NOW]::::> 수익률["+r.getEr()+"]:::"+r;
+                        System.out.println(log);
+                        writer.write(log+"\n");
+                    }
+                    writer.flush();
+                    
                 }
             }
 
-            while(dIdx>0 && dIdx<=mxIdx && openDays.get(dIdx).before(endDt)){
-                Date dt = openDays.get(dIdx);
-                List<Series> candidates = seriesRepository.findByDateAndChangeGreaterThanEqual(dt, 0.29d);
-                testByDay(dt, candidates);
-                dIdx++;
-            }
+            writer.write("==================================================================================================================\n");
+            writer.write(" ** (조건) ["+maxResult.getCondision()+"]  =>  최대 수익률["+max+"]:::"+maxResult+"\n");
+            writer.write("==================================================================================================================\n");
 
-        } catch (Exception e) {
+            writer.flush();
+
+        } catch(IOException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if(writer != null) writer.close();
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
         }
+
     }
 
-    public void testByDay(Date dt, List<Series> candidates){
+    public TradeResult start(String sDt, String eDt, long bal, int buyRatio, String sellCondition){
+        this.buyRatio = buyRatio;
+        this.sellCondition = sellCondition;
+        return start(sDt, eDt, bal);
+    }
+
+    public TradeResult start(Date sDt, Date eDt, long bal, int buyRatio, String sellCondition){
+        this.buyRatio = buyRatio;
+        this.sellCondition = sellCondition;
+        return start(sDt, eDt, bal);
+    }
+
+    public TradeResult start(String sDt, Long bal){
+        return start(sDt, new SimpleDateFormat("yyyyMMdd").format(new Date()),bal);
+    }
+
+    public TradeResult start(String sDt, String eDt, long bal){
+        try{
+
+            Date startDt = new SimpleDateFormat("yyyyMMdd").parse(sDt);
+            Date endDt = new SimpleDateFormat("yyyyMMdd").parse(eDt);
+            return start(startDt, endDt ,bal);
+        }catch(Exception e){
+            //
+        }
+        return null;
+    }
+
+    public TradeResult start(Date sDt, Date eDt, long bal){
+        this.balance = bal;
+        this.stocks = new HashMap<String,Stock>();
+        
+        Calendar c = Calendar.getInstance();
+        c.setTime(sDt);
+        c.add(Calendar.HOUR, 9);
+        
+        int dIdx = -1;
+        int mxIdx = openDays.size()-1;
+        for(int i=0;i<=mxIdx; i++){
+            if(openDays.get(i).getTime()>sDt.getTime()){
+                dIdx = i;
+                break;
+            }
+        }
+        
+        int procCnt = 0;
+        List<TradeLog> logs= new ArrayList<TradeLog>();
+        while(dIdx>0 && dIdx<=mxIdx && openDays.get(dIdx).before(eDt)){
+            Date dt = openDays.get(dIdx);
+            List<Series> candidates = seriesRepository.findByDateAndChangeGreaterThanEqual(dt, 0.29d);
+            logs.add(testByDay(dt, candidates));
+            dIdx++;
+            procCnt++;
+        }
+        //System.out.println("시작일["+sDt+"],종료일["+eDt+"],거래일["+procCnt+"],금액["+balance+"("+((float)balance/bal)*100+"%)]");
+        System.out.println(new TradeResult(sDt,eDt,procCnt,bal,balance,((float)balance/bal)*100));
+        return new TradeResult(sDt,eDt,procCnt,bal,balance,((float)balance/bal)*100).addLogs(logs);
+    }
+
+    public TradeLog testByDay(Date dt, List<Series> candidates){
+
+        TradeLog log = new TradeLog();
+        log.setDt(dt);
+        log.add("==================================================================================================================");
+        log.add(" ** 거래일:" +dt+ "    매매로그");
+        log.add("==================================================================================================================");
+
+
         this.dt = dt;
 
         List<Order> buyOrders = getBuyOrders();
         if(buyOrders.size()>0){
-            buy(buyOrders);
+            log.add(buy(buyOrders));
         }
 
         List<Order> sellOrders = getSellOrders();
         if(sellOrders.size()>0){
-            sell(sellOrders);
+            log.add(sell(sellOrders));
+        }
+
+        log.add("=========================== 거래일:" +dt+ "  잔고 ============================");
+        for(String symbol: stocks.keySet()){
+            log.add(stocks.get(symbol).toString());
+
+            // age ++
+            stocks.get(symbol).addAge();
         }
 
         // 임시저장
         temp1 = candidates;
+
+        return log;
     }
 
     // 후보(매수) 리스트
@@ -165,7 +274,7 @@ public class Tester1 implements InitializingBean{
         return orders;
     }
 
-    public void buy(List<Order> orders){
+    public List<String> buy(List<Order> orders){
         // 매수
         // series : 오늘 정보
         Long max = balance * buyRatio / 100 / orders.size();
@@ -188,9 +297,11 @@ public class Tester1 implements InitializingBean{
         //         });
         // });
 
+        List<String> logs = new ArrayList<String>();
+
         for(Order o: orders){
             Series s = seriesRepository.findByDateAndSymbol(dt,o.getSymbol());
-            if(s.getVolume()>0L){  // 거래량이 있을것.
+            if(s!=null && s.getVolume()>0L){  // 거래량이 있을것.
                 if(o.getPrice()==0L){ // 시가 매수
                     Long buyPrice = s.getOpen();
                     Long count = max/buyPrice;
@@ -198,33 +309,54 @@ public class Tester1 implements InitializingBean{
                     if(stocks.containsKey(o.getSymbol())){
                         stocks.put(o.getSymbol(), stocks.get(o.getSymbol()).buy(buyPrice, count));
                     }else{
-                        stocks.put(o.getSymbol(), new Stock(o.getSymbol(),buyPrice,count,dt));
+                        stocks.put(o.getSymbol(), new Stock(o.getSymbol(),krxMap.get(o.getSymbol()),buyPrice,count,dt));
                     }
                     balance -= buyPrice*count;
                     //System.out.println("BAL :: >>>>"+balance+" ["+s.getDate()+"]");
+
+                    logs.add(krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +buyPrice+"(원)x"+count+"(개)="+buyPrice*count+"(원) 매수, 잔고:"+balance +"(원)");
                 }
             }
         }
+        return logs;
 
-        System.out.println("BUY!!>>!"+dt +"(bal:"+balance+")::>" + stocks);
+        //System.out.println("BUY!!>>!"+dt +"(bal:"+balance+")::>" + stocks);
     }
 
-    public void sell(List<Order> orders){
+    public List<String> sell(List<Order> orders){
+        List<String> logs = new ArrayList<String>();
         // 매도
         for(Order o: orders){
-            System.out.println("SELL-ORDER : "+o);
+           // System.out.println("SELL-ORDER : "+o);
             Series s = seriesRepository.findByDateAndSymbol(dt,o.getSymbol());
-            System.out.println("SELL-TODAY : "+s);
+           // System.out.println("SELL-TODAY : "+s);
             if(o.getUprice() < s.getHigh()){
                 Stock myStock = stocks.remove(o.getSymbol());
                 balance += myStock.getCount() * o.getUprice();
+
+                logs.add(krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +o.getUprice()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * o.getUprice()+"(원) 매도, 잔고:"+balance +"(원)");
             }else if(o.getLprice() > s.getLow()){
                 Stock myStock = stocks.remove(o.getSymbol());
                 balance += myStock.getCount() * o.getLprice();
+
+                logs.add(krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +o.getLprice()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * o.getLprice()+"(원) 매도(손절), 잔고:"+balance+"(원)");
             }
         }
+
+        // 수익을 못내도 특정기간이 지나면 판다 (종가로)
+        for(String symbol: stocks.keySet()){
+            if(stocks.get(symbol).getAge()>maxStored){
+                Series s = seriesRepository.findByDateAndSymbol(dt,symbol);
+                Stock myStock = stocks.remove(symbol);
+                balance += myStock.getCount() * s.getClose();
+
+                logs.add(krxMap.get(symbol) + "(" +symbol + ") :: " +s.getClose()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * s.getClose()+"(원) 종가정리(20일지남), 잔고:"+balance+"(원)");
+            }
+        }
+
+        return logs;
         
-        System.out.println("SELL!!>>!"+dt +"(bal:"+balance+")::>" + stocks);
+        //System.out.println("SELL!!>>!"+dt +"(bal:"+balance+")::>" + stocks);
         // System.out.println(stocks);
         // System.out.println(balance);
     }
@@ -237,6 +369,14 @@ public class Tester1 implements InitializingBean{
     @Override
     public void afterPropertiesSet() throws Exception {
         openDays = seriesRepository.findSeriesDateList().stream().map(s->(Date)s.get(0)).collect(Collectors.toList());
+
+
+        List<Krx> krxs = krxRepository.findAll();
+        krxMap = new HashMap<String,String>();
+        for(Krx krx: krxs){
+            krxMap.put(krx.getSymbol(), krx.getName());
+        }
+        
     }
 
     
