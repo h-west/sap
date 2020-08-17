@@ -15,9 +15,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 public class SapTestApplication {
 
 	public static void main(String[] args) {
-		SpringApplication app = new SpringApplication(SapTestApplication.class);
-		app.setDefaultProperties(Collections.singletonMap("server.port", "8081"));
-        app.run(args);
+		//SpringApplication app = new SpringApplication(SapTestApplication.class);
+		//app.setDefaultProperties(Collections.singletonMap("server.port", "8081"));
+		//app.run(args);
+		SpringApplication.run(SapTestApplication.class, args);
 	}
 
 	@Bean
