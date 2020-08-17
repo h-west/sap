@@ -1,7 +1,5 @@
 package io.hsjang.saptest;
 
-import java.util.Collections;
-
 import javax.sql.DataSource;
 
 import org.springframework.boot.SpringApplication;
