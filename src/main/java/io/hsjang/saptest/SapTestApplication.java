@@ -7,10 +7,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.web.reactive.config.WebFluxConfigurer;
 
 @SpringBootApplication
 @EnableJpaRepositories(basePackages = "io.hsjang.saptest.repos")
-public class SapTestApplication {
+public class SapTestApplication implements WebFluxConfigurer{
 
 	public static void main(String[] args) {
 		//SpringApplication app = new SpringApplication(SapTestApplication.class);
@@ -28,5 +29,10 @@ public class SapTestApplication {
 				.url("jdbc:mysql://localhost:3306/stocks?charset=utf8")
 				.driverClassName("com.mysql.cj.jdbc.Driver")
 				.build();
+	}
+
+	@Override
+	public void addResourceHandlers(org.springframework.web.reactive.config.ResourceHandlerRegistry registry) {
+		registry.addResourceHandler("/**").addResourceLocations("classpath:/static/");
 	}
 }
