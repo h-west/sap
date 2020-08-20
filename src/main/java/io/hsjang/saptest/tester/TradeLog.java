@@ -9,6 +9,7 @@ import lombok.Data;
 @Data
 public class TradeLog {
     Date dt;
+    long balance;
     List<String> logs = new ArrayList<String>();
 
     public void add(List<String> logs){

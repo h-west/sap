@@ -5,9 +5,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +30,7 @@ import io.hsjang.saptest.tester.TradeResult;
 
 @RestController
 @RequestMapping("/api")
-public class ApiController {
+public class ApiController implements InitializingBean{
 
     @Autowired
     KrxRepository krxRepository;
@@ -37,6 +40,8 @@ public class ApiController {
 
     @Autowired
     Tester1 tester1;
+
+    Map<String,String> krxMap;
 
     /**
      * krx
@@ -58,8 +63,9 @@ public class ApiController {
      * series
      */
     @RequestMapping(value="/series/{symbol}", method=RequestMethod.GET)
-    public List<Series> series(@PathVariable String symbol) {
-        return seriesRepository.findBySymbol(symbol);
+    public Data series(@PathVariable String symbol) {
+        Data result = new Data("series",seriesRepository.findBySymbol(symbol));
+        return result.add("info",krxRepository.findBySymbol(symbol));
     }
 
     /**
@@ -71,6 +77,23 @@ public class ApiController {
         cal.setTime(new SimpleDateFormat("yyyy-MM-dd").parse("2015-06-01"));
         cal.add(Calendar.HOUR, 9);
         return seriesRepository.findByDateAndChangeGreaterThanEqual(cal.getTime(), 0.29d);
+    }
+
+    /**
+     * series
+     */
+    @RequestMapping(value="/ul/{dt}", method=RequestMethod.GET)
+    public List<Data> ulsearch(@PathVariable String dt) throws Exception{
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(new SimpleDateFormat("yyyy-MM-dd").parse(dt));
+        cal.add(Calendar.HOUR, 9);
+        return seriesRepository.findByDateAndChangeGreaterThanEqual(cal.getTime(), 0.29d)
+                .stream()
+                .map(s->
+                    Data.of("name",krxMap.get(s.getSymbol()))
+                    .add("symbol",s.getSymbol())
+                    .add("change",s.getChange())
+                ).collect(Collectors.toList());
     }
 
     @RequestMapping(value="/test2", method=RequestMethod.GET)
@@ -121,5 +144,14 @@ public class ApiController {
         }
 
         return tr;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        List<Krx> krxs = krxRepository.findAll();
+        krxMap = new HashMap<String,String>();
+        for(Krx krx: krxs){
+            krxMap.put(krx.getSymbol(), krx.getName());
+        }
     }
 }

@@ -15,5 +15,14 @@ public class Data  extends HashMap<String,Object>{
         this();
         put(k,v);
     }
+
+    public Data add(String k, Object v){
+        put(k,v);
+        return this;
+    }
+
+    public static Data of(String k, Object v){
+        return new Data(k, v);
+    }
     
 }
