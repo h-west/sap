@@ -96,6 +96,16 @@ public class ApiController implements InitializingBean{
                 ).collect(Collectors.toList());
     }
 
+    @RequestMapping(value="/test/up", method=RequestMethod.GET)
+    public TradeResult testUp(@RequestParam Map<String,Object> params) throws Exception{
+        String sDt = params.get("sDt").toString().replaceAll("-", "");
+        String eDt = params.get("eDt").toString().replaceAll("-", "");
+        String lp = params.get("lp").toString();
+        String up = params.get("up").toString();
+        int bp = Integer.parseInt(params.get("bp").toString());
+        return  tester1.start(sDt,eDt, 10000000L, bp, lp+":"+up);
+    }
+
     @RequestMapping(value="/test2", method=RequestMethod.GET)
     public String test2(@RequestParam Map<String,Object> params) throws Exception{
         

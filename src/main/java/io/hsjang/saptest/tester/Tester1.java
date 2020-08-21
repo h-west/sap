@@ -195,6 +195,7 @@ public class Tester1 implements InitializingBean{
             // age ++
             stocks.get(symbol).addAge();
         }
+        log.setBalance(this.balance);
 
         // 임시저장
         temp1 = candidates;
