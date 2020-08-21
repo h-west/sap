@@ -163,8 +163,9 @@ public class Tester1 implements InitializingBean{
             procCnt++;
         }
         //System.out.println("시작일["+sDt+"],종료일["+eDt+"],거래일["+procCnt+"],금액["+balance+"("+((float)balance/bal)*100+"%)]");
-        System.out.println(new TradeResult(sDt,eDt,procCnt,bal,balance,((float)balance/bal)*100));
-        return new TradeResult(sDt,eDt,procCnt,bal,balance,((float)balance/bal)*100).addLogs(logs);
+        long tot = balance+getTotalPrice();
+        System.out.println(new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100));
+        return new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100).addLogs(logs);
     }
 
     public TradeLog testByDay(Date dt, List<Series> candidates){
@@ -195,7 +196,7 @@ public class Tester1 implements InitializingBean{
             // age ++
             stocks.get(symbol).addAge();
         }
-        log.setBalance(this.balance);
+        log.setBalance(this.balance + getTotalPrice());
 
         // 임시저장
         temp1 = candidates;
