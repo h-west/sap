@@ -10,6 +10,6 @@ public class PageController {
 
     @RequestMapping(value="", method=RequestMethod.GET)
     public String main() throws Exception{
-        return "redirect:/main.html";
+        return "redirect:/index.html";
     }
 }
