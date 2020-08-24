@@ -43,10 +43,10 @@ public class Tester1 implements InitializingBean{
     // 조건
     List<String> excludes = List.of("000000", "000001"); // 제외 symbol
     String buyCondition = "i"; // i:시가, p:퍼센트 (p:-5)
-    int buyRatio = 70; // 잔고의 70% 만큼 후보 매수 (후보 1/n)
+    int buyRatio = 50; // 잔고의 70% 만큼 후보 매수 (후보 1/n)
 
     String sellCondition = "-5:5";  // -5이하 손절 5이상 차익실현
-    int maxStored = 40;
+    int maxStored = 39;
 
     Map<String,String> krxMap;
 
@@ -60,8 +60,9 @@ public class Tester1 implements InitializingBean{
         TradeResult maxResult = new TradeResult();
         
         try {
-        for(int l=-10;l<0;l++){
-            for(int u=3;u<10;u++){
+        for(int l=1;l<=1;l++){
+            //this.maxStored = l;
+            for(int u=3;u<=30;u++){
                 
                      // 기존 파일의 내용에 이어서 쓰려면 true를, 기존 내용을 없애고 새로 쓰려면 false를 지정한다.
                     writer = new FileWriter(file, true);
@@ -72,19 +73,19 @@ public class Tester1 implements InitializingBean{
                     
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                     int last = openDays.size()-1;
-                    for(int i=last-80; i<last; i++){
+                    //for(int i=last-80; i<last; i++){
                         //for(int j=i+1; j<openDays.size(); j++){
-                            TradeResult r = start(openDays.get(i), openDays.get(last), 10000000L, 70, l+":"+u); 
+                            TradeResult r = start(openDays.get(last-80), openDays.get(last), 10000000L, 70, l+":"+u); 
                             if(max<r.getEr()){
                                 max=r.getEr();
                                 r.setCondision(l+"% 하락, "+u+"% 상승");
                                 maxResult = r;
                             }
                         //}
-                        String log = "  ** (조건) "+l+"% 하락, "+u+"% 상승 => ["+sdf.format(openDays.get(i))+" ~ NOW]::::> 수익률["+r.getEr()+"]:::"+r;
+                        String log = "  ** (조건) "+l+"% 하락, "+u+"% 상승 => ["+sdf.format(openDays.get(last-80))+" ~ NOW]::::> 수익률["+r.getEr()+"]:::"+r;
                         System.out.println(log);
                         writer.write(log+"\n");
-                    }
+                    //}
                     writer.flush();
                     
                 }
@@ -169,7 +170,7 @@ public class Tester1 implements InitializingBean{
     }
 
     public TradeLog testByDay(Date dt, List<Series> candidates){
-
+//System.out.println(dt);
         TradeLog log = new TradeLog();
         log.setDt(dt);
         log.add("==================================================================================================================");
@@ -332,28 +333,34 @@ public class Tester1 implements InitializingBean{
            // System.out.println("SELL-ORDER : "+o);
             Series s = seriesRepository.findByDateAndSymbol(dt,o.getSymbol());
            // System.out.println("SELL-TODAY : "+s);
+            // if(o.getLprice() > s.getLow()){
+            //     Stock myStock = stocks.remove(o.getSymbol());
+            //     balance += myStock.getCount() * o.getLprice();
+
+            //     logs.add(krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +o.getLprice()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * o.getLprice()+"(원) 매도(손절), 잔고:"+balance+"(원)");
+            // }else 
             if(o.getUprice() < s.getHigh()){
                 Stock myStock = stocks.remove(o.getSymbol());
                 balance += myStock.getCount() * o.getUprice();
 
-                logs.add(krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +o.getUprice()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * o.getUprice()+"(원) 매도, 잔고:"+balance +"(원)");
-            }else if(o.getLprice() > s.getLow()){
-                Stock myStock = stocks.remove(o.getSymbol());
-                balance += myStock.getCount() * o.getLprice();
-
-                logs.add(krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +o.getLprice()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * o.getLprice()+"(원) 매도(손절), 잔고:"+balance+"(원)");
+                logs.add(krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +o.getUprice()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * o.getUprice()+"(원) 매도(차익), 잔고:"+balance +"(원)");
             }
         }
 
         // 수익을 못내도 특정기간이 지나면 판다 (종가로)
+        List<String> removeList = new ArrayList<String>();
         for(String symbol: stocks.keySet()){
             if(stocks.get(symbol).getAge()>maxStored){
                 Series s = seriesRepository.findByDateAndSymbol(dt,symbol);
-                Stock myStock = stocks.remove(symbol);
+                Stock myStock = stocks.get(symbol);
+                removeList.add(symbol);
                 balance += myStock.getCount() * s.getClose();
 
-                logs.add(krxMap.get(symbol) + "(" +symbol + ") :: " +s.getClose()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * s.getClose()+"(원) 종가정리(20일지남), 잔고:"+balance+"(원)");
+                logs.add(krxMap.get(symbol) + "(" +symbol + ") :: " +s.getClose()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * s.getClose()+"(원) 종가정리("+maxStored+"일지남), 잔고:"+balance+"(원)");
             }
+        }
+        for(String rk: removeList){
+            stocks.remove(rk);
         }
 
         return logs;
