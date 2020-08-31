@@ -22,9 +22,10 @@ import io.hsjang.saptest.model.Krx;
 import io.hsjang.saptest.model.Series;
 import io.hsjang.saptest.repos.rdbc.KrxRepository;
 import io.hsjang.saptest.repos.rdbc.SeriesRepository;
+import reactor.core.publisher.Mono;
 
 @Service
-public class Tester1 implements InitializingBean{
+public class Tester2 implements InitializingBean{
     long balance;
     Map<String,Stock> stocks = new HashMap<String,Stock>();
 
@@ -77,16 +78,18 @@ public class Tester1 implements InitializingBean{
                     int last = openDays.size()-1;
                     //for(int i=last-80; i<last; i++){
                         //for(int j=i+1; j<openDays.size(); j++){
-                            TradeResult r = start(openDays.get(last-80), openDays.get(last), 10000000L, 70, l+":"+u); 
+                            Mono<TradeResult> r = start(openDays.get(last-80), openDays.get(last), 10000000L, 70, l+":"+u); 
+                            /*
                             if(max<r.getEr()){
                                 max=r.getEr();
                                 r.setCondision(l+"% 하락, "+u+"% 상승");
                                 maxResult = r;
                             }
+                            */
                         //}
-                        String log = "  ** (조건) "+l+"% 하락, "+u+"% 상승 => ["+sdf.format(openDays.get(last-80))+" ~ NOW]::::> 수익률["+r.getEr()+"]:::"+r;
-                        System.out.println(log);
-                        writer.write(log+"\n");
+                        //String log = "  ** (조건) "+l+"% 하락, "+u+"% 상승 => ["+sdf.format(openDays.get(last-80))+" ~ NOW]::::> 수익률["+r.getEr()+"]:::"+r;
+                        //System.out.println(log);
+                        //writer.write(log+"\n");
                     //}
                     writer.flush();
                     
@@ -111,23 +114,23 @@ public class Tester1 implements InitializingBean{
 
     }
 
-    public TradeResult start(String sDt, String eDt, long bal, int buyRatio, String sellCondition){
+    public Mono<TradeResult> start(String sDt, String eDt, long bal, int buyRatio, String sellCondition){
         this.buyRatio = buyRatio;
         this.sellCondition = sellCondition;
         return start(sDt, eDt, bal);
     }
 
-    public TradeResult start(Date sDt, Date eDt, long bal, int buyRatio, String sellCondition){
+    public Mono<TradeResult> start(Date sDt, Date eDt, long bal, int buyRatio, String sellCondition){
         this.buyRatio = buyRatio;
         this.sellCondition = sellCondition;
         return start(sDt, eDt, bal);
     }
 
-    public TradeResult start(String sDt, Long bal){
+    public Mono<TradeResult> start(String sDt, Long bal){
         return start(sDt, new SimpleDateFormat("yyyyMMdd").format(new Date()),bal);
     }
 
-    public TradeResult start(String sDt, String eDt, long bal){
+    public Mono<TradeResult> start(String sDt, String eDt, long bal){
         try{
 
             Date startDt = new SimpleDateFormat("yyyyMMdd").parse(sDt);
@@ -139,7 +142,7 @@ public class Tester1 implements InitializingBean{
         return null;
     }
 
-    public TradeResult start(Date sDt, Date eDt, long bal){
+    public Mono<TradeResult> start(Date sDt, Date eDt, long bal){
         this.balance = bal;
         this.stocks = new HashMap<String,Stock>();
         
@@ -168,7 +171,7 @@ public class Tester1 implements InitializingBean{
         //System.out.println("시작일["+sDt+"],종료일["+eDt+"],거래일["+procCnt+"],금액["+balance+"("+((float)balance/bal)*100+"%)]");
         long tot = balance+getTotalPrice();
         System.out.println(new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100));
-        return new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100).addLogs(logs);
+        return Mono.just(new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100).addLogs(logs));
     }
 
     public TradeLog testByDay(Date dt, List<Series> candidates){
@@ -415,8 +418,6 @@ public class Tester1 implements InitializingBean{
         openDays = seriesRepository.findSeriesDateList().stream()
                         .map(s->Date.from(((LocalDateTime)s.get(0)).atZone(ZoneId.systemDefault()).toInstant())).collect(Collectors.toList());
 
-        //Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
-
 
         List<Krx> krxs = krxRepository.findAll();
         krxMap = new HashMap<String,String>();
@@ -426,5 +427,7 @@ public class Tester1 implements InitializingBean{
         
     }
 
-    
+    // 시작
+    // setOrders
+    // 
 }

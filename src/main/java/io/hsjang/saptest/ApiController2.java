@@ -4,11 +4,13 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,25 +23,33 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.hsjang.saptest.model.Krx;
 import io.hsjang.saptest.model.Series;
-import io.hsjang.saptest.repos.rdbc.KrxRepository;
-import io.hsjang.saptest.repos.rdbc.SeriesRepository;
-import io.hsjang.saptest.tester.Tester1;
+import io.hsjang.saptest.model.Test;
+import io.hsjang.saptest.repos.r2dbc.KrxR2Repository;
+import io.hsjang.saptest.repos.r2dbc.SeriesR2Repository;
+import io.hsjang.saptest.repos.r2dbc.TestR2Repository;
+import io.hsjang.saptest.tester.Tester2;
 import io.hsjang.saptest.tester.TradeLog;
 import io.hsjang.saptest.tester.TradeResult;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 
 @RestController
-@RequestMapping("/api")
-public class ApiController implements InitializingBean{
+@RequestMapping("/apir")
+public class ApiController2 implements InitializingBean{
 
     @Autowired
-    KrxRepository krxRepository;
+    KrxR2Repository krxRepository;
 
     @Autowired
-    SeriesRepository seriesRepository;
+    SeriesR2Repository seriesRepository;
+
+    
+    @Autowired
+    TestR2Repository testRepository;
 
     @Autowired
-    Tester1 tester1;
+    Tester2 tester2;
 
     Map<String,String> krxMap;
 
@@ -47,15 +57,22 @@ public class ApiController implements InitializingBean{
      * krx
      */
     @RequestMapping(value="/krx", method=RequestMethod.GET)
-    public List<Krx> krx() {
+    public Flux<Krx> krx() {
         return krxRepository.findAll();
+    }
+    /**
+     * krx (cache map)
+     */
+    @RequestMapping(value="/krxm", method=RequestMethod.GET)
+    public Map<String,String> krxcache() {
+        return krxMap;
     }
 
     /**
      * krx symbol
      */
     @RequestMapping(value="/krx/{symbol}", method=RequestMethod.GET)
-    public Krx krx(@PathVariable String symbol) {
+    public Mono<Krx> krx(@PathVariable String symbol) {
         return krxRepository.findBySymbol(symbol);
     }
 
@@ -63,53 +80,62 @@ public class ApiController implements InitializingBean{
      * series
      */
     @RequestMapping(value="/series/{symbol}", method=RequestMethod.GET)
-    public Data series(@PathVariable String symbol) {
-        Data result = new Data("series",seriesRepository.findBySymbol(symbol));
-        return result.add("info",krxRepository.findBySymbol(symbol));
+    public Mono<Data> series(@PathVariable String symbol) {
+        Mono<List<Series>> series = seriesRepository.findBySymbol(symbol).collectList();
+        Mono<Krx> krx = krxRepository.findBySymbol(symbol);
+        return Mono.zip(series,krx,(s,k)->new Data("info",k).add("series",s));
+    }
+    /**
+     * series
+     */
+    @RequestMapping(value="/seriesd/{symbol}", method=RequestMethod.GET)
+    public Mono<Series> seriesd(@PathVariable String symbol) throws Exception{
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(new SimpleDateFormat("yyyy-MM-dd").parse("2020-08-21"));
+        return seriesRepository.findByDateAndSymbol(LocalDateTime.ofInstant(cal.toInstant(), ZoneId.systemDefault()),symbol);
     }
 
     /**
      * series
      */
     @RequestMapping(value="/series1", method=RequestMethod.GET)
-    public List<Series> series1() throws Exception{
+    public Flux<Series> series1() throws Exception{
         Calendar cal = Calendar.getInstance();
-        cal.setTime(new SimpleDateFormat("yyyy-MM-dd").parse("2015-06-01"));
-        cal.add(Calendar.HOUR, 9);
-        return seriesRepository.findByDateAndChangeGreaterThanEqual(cal.getTime(), 0.29d);
+        cal.setTime(new SimpleDateFormat("yyyy-MM-dd").parse("2020-07-21"));
+        LocalDateTime ldt = LocalDateTime.ofInstant(cal.toInstant(), ZoneId.systemDefault());
+        return seriesRepository.findByDateAndChangeGreaterThanEqual(ldt, 0.29d);
     }
 
     /**
      * series
      */
     @RequestMapping(value="/ul/{dt}", method=RequestMethod.GET)
-    public List<Data> ulsearch(@PathVariable String dt) throws Exception{
+    public Flux<Data> ulsearch(@PathVariable String dt) throws Exception{
         Calendar cal = Calendar.getInstance();
         cal.setTime(new SimpleDateFormat("yyyy-MM-dd").parse(dt));
-        cal.add(Calendar.HOUR, 9);
-        return seriesRepository.findByDateAndChangeGreaterThanEqual(cal.getTime(), 0.29d)
-                .stream()
+        return seriesRepository.findByDateAndChangeGreaterThanEqual(LocalDateTime.ofInstant(cal.toInstant(), ZoneId.systemDefault()), 0.29d)
                 .map(s->
                     Data.of("name",krxMap.get(s.getSymbol()))
                     .add("symbol",s.getSymbol())
                     .add("change",s.getChange())
-                ).collect(Collectors.toList());
+                );
     }
 
     @RequestMapping(value="/test/up", method=RequestMethod.GET)
-    public TradeResult testUp(@RequestParam Map<String,Object> params) throws Exception{
+    public Mono<TradeResult> testUp(@RequestParam Map<String,Object> params) throws Exception{
+
         String sDt = params.get("sDt").toString().replaceAll("-", "");
         String eDt = params.get("eDt").toString().replaceAll("-", "");
         String lp = params.get("lp").toString();
         String up = params.get("up").toString();
         int bp = Integer.parseInt(params.get("bp").toString());
-        return  tester1.start(sDt,eDt, 10000000L, bp, lp+":"+up);
+        return  tester2.start(sDt,eDt, 10000000L, bp, lp+":"+up);
     }
 
     @RequestMapping(value="/test2", method=RequestMethod.GET)
     public String test2(@RequestParam Map<String,Object> params) throws Exception{
         
-        tester1.start("20200725", 10000000L);
+        tester2.start("20200725", 10000000L);
         
         return "";
     }
@@ -117,17 +143,17 @@ public class ApiController implements InitializingBean{
     @RequestMapping(value="/test3", method=RequestMethod.GET)
     public String test3(@RequestParam Map<String,Object> params) throws Exception{
         
-        tester1.fullTest();
+        tester2.fullTest();
         
         return "";
     }
 
     @RequestMapping(value="/test4", method=RequestMethod.GET)
     @ResponseBody
-    public TradeResult test4(@RequestParam Map<String,Object> params) throws Exception{
+    public Mono<TradeResult> test4(@RequestParam Map<String,Object> params) throws Exception{
         
 
-        TradeResult tr = tester1.start("20200409","20200805", 10000000L, 70, "-1:9");
+        Mono<TradeResult> tr = tester2.start("20200409","20200805", 10000000L, 70, "-1:9");
         
 
         File file = new File("log-logs.txt");
@@ -135,12 +161,14 @@ public class ApiController implements InitializingBean{
 
         try {
             writer = new FileWriter(file, true);
+            /*
             for(TradeLog log: tr.getLogs()){
                 for(String l: log.getLogs()){
                     System.out.println(l);
                     writer.write(l+"\n");
                 }
             }
+            */
             writer.flush();
 
         } catch(IOException e) {
@@ -158,10 +186,7 @@ public class ApiController implements InitializingBean{
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        List<Krx> krxs = krxRepository.findAll();
         krxMap = new HashMap<String,String>();
-        for(Krx krx: krxs){
-            krxMap.put(krx.getSymbol(), krx.getName());
-        }
+        krxRepository.findAll().subscribe(krx->krxMap.put(krx.getSymbol(), krx.getName()));
     }
 }

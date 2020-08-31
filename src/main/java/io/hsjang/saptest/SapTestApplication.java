@@ -7,10 +7,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
 
 @SpringBootApplication
-@EnableJpaRepositories(basePackages = "io.hsjang.saptest.repos")
+@EnableJpaRepositories(basePackages = "io.hsjang.saptest.repos.rdbc")
+@EnableR2dbcRepositories(basePackages = "io.hsjang.saptest.repos.r2dbc")
 public class SapTestApplication implements WebFluxConfigurer{
 
 	public static void main(String[] args) {

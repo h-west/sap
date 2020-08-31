@@ -1,4 +1,4 @@
-package io.hsjang.saptest.repos;
+package io.hsjang.saptest.repos.rdbc;
 
 import java.util.Date;
 import java.util.List;

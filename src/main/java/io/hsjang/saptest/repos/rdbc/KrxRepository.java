@@ -1,4 +1,4 @@
-package io.hsjang.saptest.repos;
+package io.hsjang.saptest.repos.rdbc;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
