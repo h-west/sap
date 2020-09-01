@@ -297,7 +297,7 @@ public class Tester1 implements InitializingBean{
                 if(stocks.containsKey(o.getSymbol())){
                     stocks.put(o.getSymbol(), stocks.get(o.getSymbol()).buy(buyPrice, count));
                 }else{
-                    stocks.put(o.getSymbol(), new Stock(o.getSymbol(),krxMap.get(o.getSymbol()),buyPrice,count,dt));
+                    stocks.put(o.getSymbol(), new Stock(o.getSymbol(),krxMap.get(o.getSymbol()),buyPrice,count,dt.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()));
                 }
                 balance -= buyPrice*count;
                 //System.out.println("BAL :: >>>>"+balance+" ["+s.getDate()+"]");

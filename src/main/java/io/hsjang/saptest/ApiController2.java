@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -23,12 +22,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.hsjang.saptest.model.Krx;
 import io.hsjang.saptest.model.Series;
-import io.hsjang.saptest.model.Test;
 import io.hsjang.saptest.repos.r2dbc.KrxR2Repository;
 import io.hsjang.saptest.repos.r2dbc.SeriesR2Repository;
 import io.hsjang.saptest.repos.r2dbc.TestR2Repository;
 import io.hsjang.saptest.tester.Tester2;
-import io.hsjang.saptest.tester.TradeLog;
 import io.hsjang.saptest.tester.TradeResult;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -43,13 +40,9 @@ public class ApiController2 implements InitializingBean{
 
     @Autowired
     SeriesR2Repository seriesRepository;
-
     
     @Autowired
     TestR2Repository testRepository;
-
-    @Autowired
-    Tester2 tester2;
 
     Map<String,String> krxMap;
 
@@ -123,27 +116,30 @@ public class ApiController2 implements InitializingBean{
 
     @RequestMapping(value="/test/up", method=RequestMethod.GET)
     public Mono<TradeResult> testUp(@RequestParam Map<String,Object> params) throws Exception{
-
         String sDt = params.get("sDt").toString().replaceAll("-", "");
         String eDt = params.get("eDt").toString().replaceAll("-", "");
-        String lp = params.get("lp").toString();
-        String up = params.get("up").toString();
-        int bp = Integer.parseInt(params.get("bp").toString());
-        return  tester2.start(sDt,eDt, 10000000L, bp, lp+":"+up);
+        // String lp = params.get("lp").toString();
+        // String up = params.get("up").toString();
+        // int bp = Integer.parseInt(params.get("bp").toString());
+        return  new Tester2(krxRepository, seriesRepository)
+            .setSDt(sDt)
+            .setEDt(eDt)
+            .start();
     }
 
     @RequestMapping(value="/test2", method=RequestMethod.GET)
     public String test2(@RequestParam Map<String,Object> params) throws Exception{
         
-        tester2.start("20200725", 10000000L);
+        Tester2 tester2 = new Tester2(krxRepository, seriesRepository);
+        tester2.start();
         
         return "";
     }
 
     @RequestMapping(value="/test3", method=RequestMethod.GET)
     public String test3(@RequestParam Map<String,Object> params) throws Exception{
-        
-        tester2.fullTest();
+        Tester2 tester2 = new Tester2(krxRepository, seriesRepository);
+        //tester2.fullTest();
         
         return "";
     }
@@ -151,9 +147,8 @@ public class ApiController2 implements InitializingBean{
     @RequestMapping(value="/test4", method=RequestMethod.GET)
     @ResponseBody
     public Mono<TradeResult> test4(@RequestParam Map<String,Object> params) throws Exception{
-        
-
-        Mono<TradeResult> tr = tester2.start("20200409","20200805", 10000000L, 70, "-1:9");
+        Tester2 tester2 = new Tester2(krxRepository, seriesRepository);
+        Mono<TradeResult> tr = tester2.start();
         
 
         File file = new File("log-logs.txt");

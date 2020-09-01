@@ -1,5 +1,6 @@
 package io.hsjang.saptest.tester;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 import lombok.Data;
@@ -11,10 +12,10 @@ public class Stock {
     String name;
     Long price;
     Long count;
-    Date firstBuyDt;
+    LocalDateTime firstBuyDt;
     int age=0;
 
-    public Stock(String symbol, String name, Long price, Long count, Date dt){
+    public Stock(String symbol, String name, Long price, Long count, LocalDateTime dt){
         this.symbol = symbol;
         this.name= name;
         this.price = price;
