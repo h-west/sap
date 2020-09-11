@@ -1,30 +1,18 @@
 package io.hsjang.saptest.tester;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import io.hsjang.saptest.model.Krx;
 import io.hsjang.saptest.model.Series;
 import io.hsjang.saptest.repos.r2dbc.KrxR2Repository;
 import io.hsjang.saptest.repos.r2dbc.SeriesR2Repository;
-import io.hsjang.saptest.repos.rdbc.KrxRepository;
-import io.hsjang.saptest.repos.rdbc.SeriesRepository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class Tester2 {
@@ -34,14 +22,15 @@ public class Tester2 {
 
     SeriesR2Repository seriesRepository;
     KrxR2Repository krxRepository;
-
-    List<LocalDateTime> openDays;
     
+    // 
+    LocalDateTime today;
+    LocalDateTime yesterDay;
+
     // 전일 거래 정보
     List<Series> temp1=new ArrayList<Series>();
 
-    // 처리일자 (index)
-    int dtIdx;
+    
 
     // 조건
     LocalDateTime sDt;
@@ -52,74 +41,24 @@ public class Tester2 {
     int sellUpper = 5;
     int maxStored = 39;
 
-    Map<String,String> krxMap = new HashMap<String,String>();
-
-    public Tester2(KrxR2Repository krxRepository, SeriesR2Repository seriesRepository){
-        
-        long balance;
-        Map<String,Stock> stocks = new HashMap<String,Stock>();
-
-        this.krxRepository = krxRepository;
+    public Tester2(SeriesR2Repository seriesRepository,KrxR2Repository krxRepository){
         this.seriesRepository = seriesRepository;
-
-        openDays = seriesRepository.findSeriesDateList()
-                        .map(s->(LocalDateTime)s.get(0))
-                        .collectList()
-                        .block();
-
-        krxRepository.findAll().subscribe(krx->{
-            krxMap.put(krx.getSymbol(), krx.getName());
-        });
+        this.krxRepository = krxRepository;
     }
-
-    public Tester2 setSDt(String sDt){
-        this.sDt = LocalDateTime.parse(sDt, DateTimeFormatter.ISO_DATE);
-        return this;
-    }
-
-    public Tester2 setEDt(String eDt){
-        this.eDt = LocalDateTime.parse(eDt, DateTimeFormatter.ISO_DATE);
-        return this;
-    }
-
-    public Tester2 setBalnace(long balance){
-        this.balance = balance;
-        return this;
-    }
-
-    public Tester2 setByRatio(int buyRatio){
-        this.buyRatio = buyRatio;
-        return this;
-    }
-
-    public Tester2 setSellUnder(int sellUnder){
-        this.sellUnder = sellUnder;
-        return this;
-    }
-
-    public Tester2 setMaxStored(int maxStored){
-        this.maxStored = maxStored;
-        return this;
-    }
-
-    public void clearStocks(){
-        stocks = new HashMap<String,Stock>();
-    }
-    
 
     public Mono<TradeResult> start(){
         
-        int dIdx = -1;
-        int mxIdx = openDays.size()-1;
-        for(int i=0;i<=mxIdx; i++){
-            if(openDays.get(i).isEqual(sDt)){
-                dIdx = i;
-                break;
-            }
-        }
-        // temp
-        return Mono.empty();
-        
+        TradeResult result = new TradeResult();
+        result.setSDt(sDt);
+        result.setEDt(eDt);
+
+        return Flux.fromIterable(Meta.openDays)
+            .map(this::setYesterDay)
+            .filter(d->d.isEqual(sDt)||d.isEqual(eDt)||(d.isAfter(sDt)&&d.isBefore(eDt)))
+            .map(this::dailyTest)
+            .collectList()
+            .map(result::addLogs);
+
         /*
         int procCnt = 0;
         List<TradeLog> logs= new ArrayList<TradeLog>();
@@ -137,7 +76,110 @@ public class Tester2 {
         */
     }
 
-    public TradeLog testByDay(Date dt, List<Series> candidates){
+    public LocalDateTime setYesterDay(LocalDateTime dt){
+        if(today!=null){
+            this.yesterDay = today;
+        }else{
+            for(LocalDateTime day: Meta.openDays){
+                if(dt.isAfter(day)){
+                    this.yesterDay = day;
+                    break;
+                }
+            }
+        }
+        this.today = dt;
+        return dt;
+    }
+
+    public TradeLog dailyTest(LocalDateTime dt){
+
+        Flux.concat(buy())
+            .subscribe(o->System.out.println(o));
+
+        return new TradeLog();
+
+        /*
+TradeLog log = new TradeLog();
+                log.add("test=>" + d.toString());
+                log.add("yesterDay=>" + yesterDay.toString());
+                log.setDt(d);
+                log.setBalance(balance);
+                return log;
+        */
+    }
+
+    /**
+     * 매수 주문 Flux
+     */
+    public Mono<List<Order>> getBuyOders(){
+        return seriesRepository.findByDateAndChangeGreaterThanEqual(yesterDay, 0.29d)
+            .map(s->Order.buy(s.getSymbol(), 0L))
+            .collectList();
+    }
+    /**
+     * 매수
+     */
+    public Flux<String> buy() {
+        seriesRepository.countByDateAndChangeGreaterThanEqual(yesterDay, 0.29d)
+            .filter(c->c>0)
+            .map(c->{
+                System.out.println(">>>>>>>>>>>>>"+c);
+                seriesRepository.findByDateAndChangeGreaterThanEqual(yesterDay, 0.29d)
+                    .doOnNext(System.out::println);
+                return new TradeLog();
+            })
+            .subscribe(System.out::println);
+
+        return Flux.empty();
+
+        // 매수
+        // series : 오늘 정보
+        /*
+        Long max = balance * buyRatio / 100 / orders.size();
+        List<String> logs = new ArrayList<String>();
+
+        orders.stream().forEach(o->{
+            Series s = seriesRepository.findByDateAndSymbol(LocalDateTime.now(),o.getSymbol()).block();
+            if(s!=null && s.getVolume()>0L && o.getPrice()==0L){
+                Long buyPrice = s.getOpen();
+                Long count = max/buyPrice;
+                
+                if(stocks.containsKey(o.getSymbol())){
+                    stocks.put(o.getSymbol(), stocks.get(o.getSymbol()).buy(buyPrice, count));
+                }else{
+                    stocks.put(o.getSymbol(), new Stock(o.getSymbol(),Meta.krxMap.get(o.getSymbol()),buyPrice,count,LocalDateTime.now()));
+                }
+                balance -= buyPrice*count;
+                //System.out.println("BAL :: >>>>"+balance+" ["+s.getDate()+"]");
+
+                logs.add(Meta.krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +buyPrice+"(원)x"+count+"(개)="+buyPrice*count+"(원) 매수, 잔고:"+balance +"(원)");
+            }
+        });
+         */
+    }
+
+
+    
+
+
+    /**
+     * 매도 주문 Flux
+     */
+    public Flux<Order> getSellOders(){
+        return Flux.fromStream(stocks.keySet().stream())
+                .map(s->{Stock stock = stocks.get(s);
+                    String[] pa = "".split(":"); //sellCondition.split(":");
+                    int lp = Integer.parseInt(pa[0]);
+                    int up = Integer.parseInt(pa[1]);
+    
+                    Long uprice = (long) (stock.getPrice() * (1+(float)up/100));
+                    Long lprice = (long) (stock.getPrice() * (1+(float)lp/100));
+                    return Order.sell(stocks.get(s).getSymbol(), uprice, lprice);
+                });
+    }
+
+    //public TradeLog testByDay(LocalDateTime dt, List<Series> candidates){
+    public TradeLog DailyTest(LocalDateTime dt, List<Series> candidates){
 //System.out.println(dt);
         TradeLog log = new TradeLog();
         log.setDt(dt);
@@ -148,10 +190,10 @@ public class Tester2 {
 
         //this.dt = dt;
 
-        List<Order> buyOrders = getBuyOrders();
-        if(buyOrders.size()>0){
-            log.add(buy(buyOrders));
-        }
+        // List<Order> buyOrders = getBuyOrders();
+        // if(buyOrders.size()>0){
+        //     log.add(buy(buyOrders));
+        // }
 
         List<Order> sellOrders = getSellOrders();
         if(sellOrders.size()>0){
@@ -248,7 +290,7 @@ public class Tester2 {
         */
     }
 
-    public List<String> buy(List<Order> orders){
+    public List<String> buys(List<Order> orders){
         // 매수
         // series : 오늘 정보
         Long max = balance * buyRatio / 100 / orders.size();
@@ -263,12 +305,12 @@ public class Tester2 {
                 if(stocks.containsKey(o.getSymbol())){
                     stocks.put(o.getSymbol(), stocks.get(o.getSymbol()).buy(buyPrice, count));
                 }else{
-                    stocks.put(o.getSymbol(), new Stock(o.getSymbol(),krxMap.get(o.getSymbol()),buyPrice,count,LocalDateTime.now()));
+                    stocks.put(o.getSymbol(), new Stock(o.getSymbol(),Meta.krxMap.get(o.getSymbol()),buyPrice,count,LocalDateTime.now()));
                 }
                 balance -= buyPrice*count;
                 //System.out.println("BAL :: >>>>"+balance+" ["+s.getDate()+"]");
 
-                logs.add(krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +buyPrice+"(원)x"+count+"(개)="+buyPrice*count+"(원) 매수, 잔고:"+balance +"(원)");
+                logs.add(Meta.krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +buyPrice+"(원)x"+count+"(개)="+buyPrice*count+"(원) 매수, 잔고:"+balance +"(원)");
             }
         });
 
@@ -307,7 +349,7 @@ public class Tester2 {
                 Stock myStock = stocks.remove(o.getSymbol());
                 balance += myStock.getCount() * o.getUprice();
 
-                logs.add(krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +o.getUprice()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * o.getUprice()+"(원) 매도(차익), 잔고:"+balance +"(원)");
+                logs.add(Meta.krxMap.get(o.getSymbol()) + "(" +o.getSymbol() + ") :: " +o.getUprice()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * o.getUprice()+"(원) 매도(차익), 잔고:"+balance +"(원)");
             }
         });
 
@@ -319,7 +361,7 @@ public class Tester2 {
                 removeList.add(symbol);
                 balance += myStock.getCount() * s.getClose();
 
-                logs.add(krxMap.get(symbol) + "(" +symbol + ") :: " +s.getClose()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * s.getClose()+"(원) 종가정리("+maxStored+"일지남), 잔고:"+balance+"(원)");
+                logs.add(Meta.krxMap.get(symbol) + "(" +symbol + ") :: " +s.getClose()+"(원)x"+myStock.getCount()+"(개)="+myStock.getCount() * s.getClose()+"(원) 종가정리("+maxStored+"일지남), 잔고:"+balance+"(원)");
             }
         });
         for(String rk: removeList){
@@ -381,4 +423,41 @@ public class Tester2 {
     // 시작
     // setOrders
     // 
+
+
+    public Tester2 setSDt(String sDt){
+        LocalDate dt = LocalDate.parse(sDt, DateTimeFormatter.ISO_DATE);
+        this.sDt = dt.atTime(0,0,0);
+        return this;
+    }
+
+    public Tester2 setEDt(String eDt){
+        LocalDate dt = LocalDate.parse(eDt, DateTimeFormatter.ISO_DATE);
+        this.eDt = dt.atTime(0,0,0);
+        return this;
+    }
+
+    public Tester2 setBalnace(long balance){
+        this.balance = balance;
+        return this;
+    }
+
+    public Tester2 setByRatio(int buyRatio){
+        this.buyRatio = buyRatio;
+        return this;
+    }
+
+    public Tester2 setSellUnder(int sellUnder){
+        this.sellUnder = sellUnder;
+        return this;
+    }
+
+    public Tester2 setMaxStored(int maxStored){
+        this.maxStored = maxStored;
+        return this;
+    }
+
+    public void clearStocks(){
+        stocks = new HashMap<String,Stock>();
+    }
 }

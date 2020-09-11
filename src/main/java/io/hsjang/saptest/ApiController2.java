@@ -26,6 +26,7 @@ import io.hsjang.saptest.repos.r2dbc.KrxR2Repository;
 import io.hsjang.saptest.repos.r2dbc.SeriesR2Repository;
 import io.hsjang.saptest.repos.r2dbc.TestR2Repository;
 import io.hsjang.saptest.tester.Tester2;
+import io.hsjang.saptest.tester.Meta;
 import io.hsjang.saptest.tester.TradeResult;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -33,7 +34,7 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/apir")
-public class ApiController2 implements InitializingBean{
+public class ApiController2 {
 
     @Autowired
     KrxR2Repository krxRepository;
@@ -44,7 +45,6 @@ public class ApiController2 implements InitializingBean{
     @Autowired
     TestR2Repository testRepository;
 
-    Map<String,String> krxMap;
 
     /**
      * krx
@@ -58,7 +58,7 @@ public class ApiController2 implements InitializingBean{
      */
     @RequestMapping(value="/krxm", method=RequestMethod.GET)
     public Map<String,String> krxcache() {
-        return krxMap;
+        return Meta.krxMap;
     }
 
     /**
@@ -108,7 +108,7 @@ public class ApiController2 implements InitializingBean{
         cal.setTime(new SimpleDateFormat("yyyy-MM-dd").parse(dt));
         return seriesRepository.findByDateAndChangeGreaterThanEqual(LocalDateTime.ofInstant(cal.toInstant(), ZoneId.systemDefault()), 0.29d)
                 .map(s->
-                    Data.of("name",krxMap.get(s.getSymbol()))
+                    Data.of("name",Meta.krxMap.get(s.getSymbol()))
                     .add("symbol",s.getSymbol())
                     .add("change",s.getChange())
                 );
@@ -121,7 +121,7 @@ public class ApiController2 implements InitializingBean{
         // String lp = params.get("lp").toString();
         // String up = params.get("up").toString();
         // int bp = Integer.parseInt(params.get("bp").toString());
-        return  new Tester2(krxRepository, seriesRepository)
+        return  new Tester2(seriesRepository, krxRepository)
             .setSDt(sDt)
             .setEDt(eDt)
             .start();
@@ -130,7 +130,7 @@ public class ApiController2 implements InitializingBean{
     @RequestMapping(value="/test2", method=RequestMethod.GET)
     public String test2(@RequestParam Map<String,Object> params) throws Exception{
         
-        Tester2 tester2 = new Tester2(krxRepository, seriesRepository);
+        Tester2 tester2 = new Tester2(seriesRepository, krxRepository);
         tester2.start();
         
         return "";
@@ -138,7 +138,7 @@ public class ApiController2 implements InitializingBean{
 
     @RequestMapping(value="/test3", method=RequestMethod.GET)
     public String test3(@RequestParam Map<String,Object> params) throws Exception{
-        Tester2 tester2 = new Tester2(krxRepository, seriesRepository);
+        Tester2 tester2 = new Tester2(seriesRepository, krxRepository);
         //tester2.fullTest();
         
         return "";
@@ -147,7 +147,7 @@ public class ApiController2 implements InitializingBean{
     @RequestMapping(value="/test4", method=RequestMethod.GET)
     @ResponseBody
     public Mono<TradeResult> test4(@RequestParam Map<String,Object> params) throws Exception{
-        Tester2 tester2 = new Tester2(krxRepository, seriesRepository);
+        Tester2 tester2 = new Tester2(seriesRepository, krxRepository);
         Mono<TradeResult> tr = tester2.start();
         
 
@@ -179,9 +179,14 @@ public class ApiController2 implements InitializingBean{
         return tr;
     }
 
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        krxMap = new HashMap<String,String>();
-        krxRepository.findAll().subscribe(krx->krxMap.put(krx.getSymbol(), krx.getName()));
+    @RequestMapping(value="/test5", method=RequestMethod.GET)
+    @ResponseBody
+    public Mono<TradeResult> test5(@RequestParam Map<String,Object> params) throws Exception{
+        return new Tester2(seriesRepository, krxRepository)
+            .setSDt("2020-06-29")
+            .setEDt("2020-07-07")
+            .start();
     }
+
+    
 }

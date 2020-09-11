@@ -1,14 +1,14 @@
 package io.hsjang.saptest.tester;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import lombok.Data;
 
 @Data
 public class TradeLog {
-    Date dt;
+    LocalDateTime dt;
     long balance;
     List<String> logs = new ArrayList<String>();
 

@@ -167,14 +167,15 @@ public class Tester1 implements InitializingBean{
         }
         //System.out.println("시작일["+sDt+"],종료일["+eDt+"],거래일["+procCnt+"],금액["+balance+"("+((float)balance/bal)*100+"%)]");
         long tot = balance+getTotalPrice();
-        System.out.println(new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100));
-        return new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100).addLogs(logs);
+        //System.out.println(new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100));
+        //return new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100).addLogs(logs);
+        return null;
     }
 
     public TradeLog testByDay(Date dt, List<Series> candidates){
 //System.out.println(dt);
         TradeLog log = new TradeLog();
-        log.setDt(dt);
+       // log.setDt(dt);
         log.add("==================================================================================================================");
         log.add(" ** 거래일:" +dt+ "    매매로그");
         log.add("==================================================================================================================");

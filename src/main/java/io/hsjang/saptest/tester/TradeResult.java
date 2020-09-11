@@ -1,6 +1,7 @@
 package io.hsjang.saptest.tester;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
@@ -10,8 +11,8 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class TradeResult {
-    Date sDt;
-    Date eDt;
+    LocalDateTime sDt;
+    LocalDateTime eDt;
     long sBal;
     long eBal;
     float er;
@@ -23,7 +24,7 @@ public class TradeResult {
 
     }
 
-    public TradeResult(Date sDt, Date eDt, int tDays, long sBal, long eBal, float er){
+    public TradeResult(LocalDateTime sDt, LocalDateTime eDt, int tDays, long sBal, long eBal, float er){
         this.sDt= sDt;
         this.eDt = eDt;
         this.tDays = tDays;
@@ -34,6 +35,11 @@ public class TradeResult {
 
     public TradeResult addLogs(List<TradeLog> logs){
         this.logs = logs;
+        return this;
+    }
+
+    public TradeResult addResult(TradeResult result){
+        this.logs.addAll(result.getLogs());
         return this;
     }
 
