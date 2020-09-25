@@ -26,6 +26,7 @@ import io.hsjang.saptest.repos.r2dbc.KrxR2Repository;
 import io.hsjang.saptest.repos.r2dbc.SeriesR2Repository;
 import io.hsjang.saptest.repos.r2dbc.TestR2Repository;
 import io.hsjang.saptest.tester.Tester2;
+import io.hsjang.saptest.tester.Tester3;
 import io.hsjang.saptest.tester.Meta;
 import io.hsjang.saptest.tester.TradeResult;
 import reactor.core.publisher.Flux;
@@ -189,4 +190,9 @@ public class ApiController2 {
     }
 
     
+    @RequestMapping(value="/test6", method=RequestMethod.GET)
+    @ResponseBody
+    public Mono<TestResult> test6(@RequestParam Map<String,Object> params) throws Exception{
+        return new Tester3(krxRepository, seriesRepository, "20200920").start();
+    }
 }

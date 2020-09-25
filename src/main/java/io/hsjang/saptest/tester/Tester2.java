@@ -35,7 +35,7 @@ public class Tester2 {
     // 조건
     LocalDateTime sDt;
     LocalDateTime eDt;
-    List<String> excludes = List.of("000000", "000001"); // 제외 symbol
+    List<String> excludes = null;//sList.of("000000", "000001"); // 제외 symbol
     int buyRatio = 50;
     int sellUnder = -5;
     int sellUpper = 5;
@@ -120,15 +120,15 @@ TradeLog log = new TradeLog();
      * 매수
      */
     public Flux<String> buy() {
-        seriesRepository.countByDateAndChangeGreaterThanEqual(yesterDay, 0.29d)
-            .filter(c->c>0)
-            .map(c->{
-                System.out.println(">>>>>>>>>>>>>"+c);
-                seriesRepository.findByDateAndChangeGreaterThanEqual(yesterDay, 0.29d)
-                    .doOnNext(System.out::println);
-                return new TradeLog();
-            })
-            .subscribe(System.out::println);
+        // seriesRepository.countByDateAndChangeGreaterThanEqual(yesterDay, 0.29d)
+        //     .filter(c->c>0)
+        //     .map(c->{
+        //         System.out.println(">>>>>>>>>>>>>"+c);
+        //         seriesRepository.findByDateAndChangeGreaterThanEqual(yesterDay, 0.29d)
+        //             .doOnNext(System.out::println);
+        //         return new TradeLog();
+        //     })
+        //     .subscribe(System.out::println);
 
         return Flux.empty();
 

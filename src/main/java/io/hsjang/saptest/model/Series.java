@@ -28,8 +28,3 @@ public class Series implements Serializable{
     Long volume;
     Double change;
 }
-class SeriesKey implements Serializable{
-    private static final long serialVersionUID = 1L;
-    LocalDateTime date;
-    String symbol;
-}

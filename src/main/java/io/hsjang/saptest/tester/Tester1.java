@@ -43,7 +43,7 @@ public class Tester1 implements InitializingBean{
     Date dt;
 
     // 조건
-    List<String> excludes = List.of("000000", "000001"); // 제외 symbol
+    List<String> excludes =  null;//List.of("000000", "000001"); // 제외 symbol
     String buyCondition = "i"; // i:시가, p:퍼센트 (p:-5)
     int buyRatio = 50; // 잔고의 70% 만큼 후보 매수 (후보 1/n)
 

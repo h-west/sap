@@ -34,6 +34,10 @@ public class Meta implements InitializingBean{
         Meta.krxMap = new HashMap<String,String>();
         krxRepository.findAll().subscribe(krx->krxMap.put(krx.getSymbol(), krx.getName()));
     }
+
+    public static String getSymbolName(String symbol){
+        return krxMap.get(symbol);
+    }
     
     
 }

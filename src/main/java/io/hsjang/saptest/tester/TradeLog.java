@@ -12,6 +12,18 @@ public class TradeLog {
     long balance;
     List<String> logs = new ArrayList<String>();
 
+    String symbol;
+    LocalDateTime buyingDt;
+    LocalDateTime sellingDt;
+    long buyingPrice;
+    long sellingPrice;
+
+    @Override
+    public String toString(){
+        return symbol+"["+Meta.getSymbolName(symbol)+"] " +buyingDt+"-"+sellingDt+"::"+buyingPrice+":"+sellingPrice;
+    }
+
+
     public void add(List<String> logs){
         this.logs.addAll(logs);
     }
