@@ -7,11 +7,9 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,9 +23,9 @@ import io.hsjang.saptest.model.Series;
 import io.hsjang.saptest.repos.r2dbc.KrxR2Repository;
 import io.hsjang.saptest.repos.r2dbc.SeriesR2Repository;
 import io.hsjang.saptest.repos.r2dbc.TestR2Repository;
+import io.hsjang.saptest.tester.Meta;
 import io.hsjang.saptest.tester.Tester2;
 import io.hsjang.saptest.tester.Tester3;
-import io.hsjang.saptest.tester.Meta;
 import io.hsjang.saptest.tester.TradeResult;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -139,7 +137,7 @@ public class ApiController2 {
 
     @RequestMapping(value="/test3", method=RequestMethod.GET)
     public String test3(@RequestParam Map<String,Object> params) throws Exception{
-        Tester2 tester2 = new Tester2(seriesRepository, krxRepository);
+        //Tester2 tester2 = new Tester2(seriesRepository, krxRepository);
         //tester2.fullTest();
         
         return "";

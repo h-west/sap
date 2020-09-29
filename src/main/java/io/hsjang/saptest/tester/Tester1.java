@@ -167,6 +167,7 @@ public class Tester1 implements InitializingBean{
         }
         //System.out.println("시작일["+sDt+"],종료일["+eDt+"],거래일["+procCnt+"],금액["+balance+"("+((float)balance/bal)*100+"%)]");
         long tot = balance+getTotalPrice();
+        System.out.println(procCnt+tot);
         //System.out.println(new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100));
         //return new TradeResult(sDt,eDt,procCnt,bal,tot,((float)tot/bal)*100).addLogs(logs);
         return null;
