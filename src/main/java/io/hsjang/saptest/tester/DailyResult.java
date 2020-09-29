@@ -15,21 +15,27 @@ public class DailyResult {
     double roi = 1;
     List<TradeLog> logs = new ArrayList<TradeLog>();
 
+    public DailyResult() {
+
+    }
+
     public DailyResult(LocalDateTime dt){
         this.dt = dt;
     }
 
-    public void add(TradeLog log){
+    public DailyResult add(TradeLog log){
         this.buyingPrice += log.getBuyingPrice();
         this.sellingPrice += log.getSellingPrice();
         roi = (double) this.sellingPrice / this.buyingPrice;
         logs.add(log);
+        return this;
     }
     
-    public void merge(DailyResult dr){
+    public DailyResult merge(DailyResult dr){
         this.buyingPrice += dr.getBuyingPrice();
         this.sellingPrice += dr.getSellingPrice();
         roi = (double) this.sellingPrice / this.buyingPrice;
         logs.addAll(dr.getLogs());
+        return this;
     }
 }

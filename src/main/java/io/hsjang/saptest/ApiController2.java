@@ -193,6 +193,6 @@ public class ApiController2 {
     @RequestMapping(value="/test6", method=RequestMethod.GET)
     @ResponseBody
     public Mono<TestResult> test6(@RequestParam Map<String,Object> params) throws Exception{
-        return new Tester3(krxRepository, seriesRepository, "20200920").start();
+        return new Tester3(krxRepository, seriesRepository, "20200901").start();
     }
 }

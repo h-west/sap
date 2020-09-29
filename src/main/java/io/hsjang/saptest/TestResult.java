@@ -1,10 +1,11 @@
 package io.hsjang.saptest;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
+import io.hsjang.saptest.tester.DailyResult;
 import lombok.Data;
 
 @Data
@@ -12,24 +13,23 @@ public class TestResult implements Serializable{
 
     private static final long serialVersionUID = 1L;
 
-    Date start;
-    Date end;
-    Long money1;
-    Long money2;
-    List<String> trades;
+    LocalDateTime sDt;
+    LocalDateTime eDt;
+    Long asset;
+    Long balance;
+    double roi;
+    List<DailyResult> dailyResults = new ArrayList<DailyResult>();
 
-    public TestResult(){}
-
-    public TestResult(Date start, Date end, Long money1, Long money2){
-        this.start = start;
-        this.end = end;
-        this.money1 = money1;
-        this.money2 = money2;
-        this.trades = new ArrayList<String>();
+    public TestResult(List<DailyResult> drs){
+        if(!drs.isEmpty()){
+            this.sDt = drs.get(0).getDt();
+            this.eDt = drs.get(drs.size()-1).getDt();
+        }
+        this.dailyResults = drs;
     }
 
-    public TestResult addTrade(String trade){
-        this.trades.add(trade);
-        return this;
+    public void setRoi(){
+        this.roi = (double) balance / asset * 100;
     }
+
 }
